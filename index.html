@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generatore QR Code</title>
+<style>
+  *{box-sizing:border-box}body{margin:0;background:#f4f6f9;color:#202b38;font-family:system-ui,-apple-system,Segoe UI,sans-serif;padding:24px}
+  main{max-width:520px;margin:35px auto;background:white;padding:28px;border-radius:16px;box-shadow:0 6px 30px #14253a12}
+  h1{font-size:1.7rem;margin:0 0 8px}p{color:#526274;line-height:1.5}label{display:block;font-weight:600;margin:18px 0 7px}
+  textarea,select{width:100%;font:inherit;border:1px solid #b8c2cf;border-radius:8px;padding:11px;background:white;color:#202b38}
+  textarea{min-height:110px;resize:vertical}button{font:inherit;border:0;border-radius:8px;padding:12px 18px;cursor:pointer;font-weight:600}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.primary{background:#155db8;color:white}.secondary{background:#e5edf8;color:#174b89}
+  button:disabled{opacity:.5;cursor:not-allowed}#preview{display:none;justify-content:center;margin:24px auto 8px;padding:14px;background:white;border:1px solid #e0e5eb;border-radius:10px;width:fit-content;max-width:100%}
+  #preview canvas{max-width:100%;height:auto}#status{min-height:24px;font-size:.94rem}footer{font-size:.8rem;text-align:center;color:#718092;margin-top:22px}
+</style>
+</head>
+<body>
+<main>
+<h1>Generatore QR Code</h1>
+<p>Inserisci un testo o un indirizzo web, genera il QR Code e scaricalo in formato PNG.</p>
+<label for="content">Testo da codificare</label>
+<textarea id="content" placeholder="Scrivi qui il testo o l'indirizzo web..."></textarea>
+<label for="size">Dimensione PNG</label>
+<select id="size"><option value="200">200 × 200 pixel</option><option value="500" selected>500 × 500 pixel</option><option value="1000">1000 × 1000 pixel</option></select>
+<div class="actions"><button class="primary" id="generate">Genera QR Code</button><button class="secondary" id="download" disabled>Scarica PNG</button></div>
+<div id="preview" aria-label="Anteprima QR Code"></div>
+<p id="status" role="status" aria-live="polite"></p>
+<footer>Il testo viene elaborato nel tuo browser.</footer>
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+const input=document.getElementById('content');
+const size=document.getElementById('size');
+const preview=document.getElementById('preview');
+const status=document.getElementById('status');
+const download=document.getElementById('download');
+let outputCanvas=null;
+document.getElementById('generate').addEventListener('click',()=>{
+  download.disabled=true;outputCanvas=null;preview.replaceChildren();preview.style.display='none';
+  const value=input.value.trim();
+  if(!value){status.textContent='Inserisci un testo prima di generare il QR Code.';return;}
+  if(typeof QRCode==='undefined'){status.textContent='Impossibile caricare la libreria QR Code. Controlla la connessione Internet.';return;}
+  const pixels=Number(size.value);
+  try{
+    // Render first at a modest resolution to avoid excessive memory use.
+    const holder=document.createElement('div');
+    new QRCode(holder,{text:value,width:pixels,height:pixels,colorDark:'#000000',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    const canvas=holder.querySelector('canvas');
+    const img=holder.querySelector('img');
+    outputCanvas=document.createElement('canvas');outputCanvas.width=pixels;outputCanvas.height=pixels;
+    const ctx=outputCanvas.getContext('2d');ctx.imageSmoothingEnabled=false;
+    if(canvas){ctx.drawImage(canvas,0,0,pixels,pixels);}
+    else if(img && img.complete){ctx.drawImage(img,0,0,pixels,pixels);}
+    else{throw new Error('Anteprima non disponibile');}
+    preview.appendChild(outputCanvas);preview.style.display='flex';download.disabled=false;
+    status.textContent='QR Code generato correttamente.';
+  }catch(e){status.textContent='Impossibile generare il QR Code: prova con un testo più breve.';}
+});
+download.addEventListener('click',()=>{
+  if(!outputCanvas)return;
+  const link=document.createElement('a');link.download='QRCode.png';link.href=outputCanvas.toDataURL('image/png');link.click();
+});
+</script>
+</body>
+</html>
